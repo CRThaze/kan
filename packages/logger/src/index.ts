@@ -22,9 +22,13 @@ function createAxiomStream(token: string, dataset: string): pino.DestinationStre
   };
 }
 
+// The tRPC logging middleware logs every procedure's raw input, and the
+// webhook create/update inputs carry the signing secret.
+const redact = ["input.secret"];
+
 export const logger = useAxiom
   ? pino(
-      { level },
+      { level, redact },
       pino.multistream([
         { stream: process.stdout, level },
         { stream: createAxiomStream(axiomToken, axiomDataset), level },
@@ -32,6 +36,7 @@ export const logger = useAxiom
     )
   : pino({
       level,
+      redact,
       ...(isDev && {
         transport: {
           target: "pino-pretty",
