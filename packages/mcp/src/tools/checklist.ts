@@ -64,7 +64,7 @@ export function registerChecklistTools(server: McpServer): void {
     async ({ checklistItemPublicId, title, isCompleted, index }) => {
       const data = await kanRequest("PATCH", `/checklists/items/${checklistItemPublicId}`, {
         title,
-        isCompleted,
+        completed: isCompleted,
         index,
       });
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
