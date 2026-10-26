@@ -1,6 +1,8 @@
 import { Axiom } from "@axiomhq/js";
 import pino from "pino";
 
+import { redactSensitive } from "./redact";
+
 const isDev = process.env.NODE_ENV !== "production";
 const isCloud = process.env.NEXT_PUBLIC_KAN_ENV === "cloud";
 const level = process.env.LOG_LEVEL || (isDev ? "debug" : "info");
@@ -22,13 +24,16 @@ function createAxiomStream(token: string, dataset: string): pino.DestinationStre
   };
 }
 
-// The tRPC logging middleware logs every procedure's raw input, and the
-// webhook create/update inputs carry the signing secret.
-const redact = ["input.secret"];
+// Runs on every log line, including child loggers, so secrets are masked no
+// matter which module logs them or how deeply they are nested.
+const formatters = {
+  log: (obj: Record<string, unknown>) =>
+    redactSensitive(obj) as Record<string, unknown>,
+};
 
 export const logger = useAxiom
   ? pino(
-      { level, redact },
+      { level, formatters },
       pino.multistream([
         { stream: process.stdout, level },
         { stream: createAxiomStream(axiomToken, axiomDataset), level },
@@ -36,7 +41,7 @@ export const logger = useAxiom
     )
   : pino({
       level,
-      redact,
+      formatters,
       ...(isDev && {
         transport: {
           target: "pino-pretty",
