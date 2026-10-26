@@ -22,9 +22,12 @@ function createAxiomStream(token: string, dataset: string): pino.DestinationStre
   };
 }
 
+// Paths that should have their values dedacted from any log output.
+const redact = ["input.secret"];
+
 export const logger = useAxiom
   ? pino(
-      { level },
+      { level, redact },
       pino.multistream([
         { stream: process.stdout, level },
         { stream: createAxiomStream(axiomToken, axiomDataset), level },
@@ -32,6 +35,7 @@ export const logger = useAxiom
     )
   : pino({
       level,
+      redact,
       ...(isDev && {
         transport: {
           target: "pino-pretty",
