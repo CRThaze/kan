@@ -189,7 +189,7 @@ export default withApiLogging(
     const { event, license_key, license_status, tier, prev_license_key } =
       payload;
 
-    log.info({ headers: req.headers, payload }, "partner webhook received");
+    log.info({ payload }, "partner webhook received");
 
     const { db } = await createNextApiContext(req);
 
