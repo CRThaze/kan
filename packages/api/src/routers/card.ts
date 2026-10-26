@@ -606,6 +606,46 @@ export const cardRouter = createTRPCRouter({
         cardMemberIds,
       );
 
+      // Member changes go out as card.updated, like the other card edits.
+      // `changes.member` carries the toggled member's publicId: in `to` when
+      // added, in `from` when removed.
+      const sendMemberWebhook = (change: {
+        from: string | null;
+        to: string | null;
+      }) =>
+        cardRepo
+          .getByPublicId(ctx.db, input.cardPublicId)
+          .then((details) => {
+            if (!details) return;
+            return sendWebhooksForWorkspace(
+              ctx.db,
+              card.workspaceId,
+              createCardWebhookPayload(
+                "card.updated",
+                {
+                  id: String(details.id),
+                  publicId: details.publicId,
+                  title: details.title,
+                  description: details.description,
+                  dueDate: details.dueDate,
+                  listId: card.listPublicId,
+                },
+                {
+                  boardId: card.boardPublicId,
+                  boardName: card.boardName,
+                  listName: card.listName,
+                  user: ctx.user
+                    ? { id: ctx.user.id, name: ctx.user.name }
+                    : undefined,
+                  changes: { member: change },
+                },
+              ),
+            );
+          })
+          .catch((error) => {
+            console.error("Webhook delivery failed:", error);
+          });
+
       if (existingMember) {
         const deletedCardMemberRelationship =
           await cardRepo.hardDeleteCardMemberRelationship(
@@ -626,6 +666,11 @@ export const cardRouter = createTRPCRouter({
           createdBy: userId,
         });
 
+        void sendMemberWebhook({
+          from: input.workspaceMemberPublicId,
+          to: null,
+        });
+
         return { newMember: false };
       }
 
@@ -644,6 +689,8 @@ export const cardRouter = createTRPCRouter({
         workspaceMemberId: member.id,
         createdBy: userId,
       });
+
+      void sendMemberWebhook({ from: null, to: input.workspaceMemberPublicId });
 
       return { newMember: true };
     }),
