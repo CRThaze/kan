@@ -16,6 +16,8 @@ vi.mock("@kan/db/repository/card.repo", () => ({
   hardDeleteCardMemberRelationship: vi.fn(),
   createCardMemberRelationship: vi.fn(),
   getWithListAndMembersByPublicId: vi.fn(),
+  // addOrRemoveMember fires a card.updated webhook that reloads the card
+  getByPublicId: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("@kan/db/repository/cardActivity.repo", () => ({
